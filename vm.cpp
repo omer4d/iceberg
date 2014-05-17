@@ -10,6 +10,13 @@ using namespace std;
 
 #define GP_STACK_BYTES (1024 * 1024 * 2)
 
+void error(std::string const& msg)
+{
+    printf("%s", msg.c_str());
+    char* ptr = nullptr;
+    *ptr = 0;
+}
+
 enum Opcode {
 	HALT, GOTO, JMP, JE, JNE, JGT, JLT, JGET, JLET,
 	BAND, BOR, BXOR, BSL1, BSR1, BSL, BSR,
@@ -25,6 +32,23 @@ enum Opcode {
 	STOREF, STORED, STOREA,
 		
 	PUSHB_CONST, POPB_CONST, PUSHB, POPB
+};
+
+char const* OPCODE_NAMES[] = {
+    "HALT", "GOTO", "JMP", "JE", "JNE", "JGT", "JLT", "JGET", "JLET",
+	"BAND", "BOR", "BXOR", "BSL1", "BSR1", "BSL", "BSR",
+	"ADD", "SUB", "MUL", "DIV", "MOD",
+	
+	"LOADUI8", "LOADUI16", "LOADUI32", "LOADUI",
+	"LOADI8", "LOADI16", "LOADI32", "LOADI",
+	"LOADF", "LOADD", "LOADA",
+	"LOADV_CONST", "LOADA_CONST", "LOADSP_CONST",
+	
+	"STOREUI8", "STOREUI16", "STOREUI32", "STOREUI",
+	"STOREI8", "STOREI16", "STOREI32", "STOREI",
+	"STOREF", "STORED", "STOREA",
+	
+	"PUSHB_CONST", "POPB_CONST", "PUSHB", "POPB"
 };
 
 typedef double Value;
@@ -49,6 +73,16 @@ struct VM {
 		delete[] gpStack;
 	}
 	
+	void printOpStack()
+	{
+	    printf("--------\n");
+	    
+	    for(Value v : opStack)
+	        printf("%f\n", v);
+	        
+	    printf("---------\n");
+	}
+	
 	Value progReadValue()
 	{
 		Value v = *(Value*)ip;
@@ -65,7 +99,7 @@ struct VM {
 	{
 		while(ip)
 		{
-			printf("%d\n", *ip);
+			printf("%s\n", OPCODE_NAMES[*ip]);
 			
 			switch(*ip)
 			{
@@ -479,13 +513,6 @@ struct AsmParser {
 		}
 	}
 	
-	void error(std::string const& msg)
-	{
-		printf("%s", msg.c_str());
-		char* ptr = nullptr;
-		*ptr = 0;
-	}
-	
 	bool reachedEnd()
 	{
 		return tokIndex >= (int)tokens.size();
@@ -556,23 +583,19 @@ struct AsmParser {
 	}
 };
 
-enum Primitive {
-	
-};
-
 struct Var {
 	enum Type {
 		INT, FLOAT, DOUBLE,
 	};
 	
 	Type type;
-	std::string name;
+	string name;
 	
-	Var(Type pType, std::string pName): type(pType), name(pName)
+	Var(Type pType, string pName): type(pType), name(pName)
 	{
 	}
 	
-	int size()
+	int size() const
 	{
 		switch(type)
 		{
@@ -595,24 +618,88 @@ struct BindingData {
 	}
 };
 
-/*
+Opcode getLoadOpcode(Var::Type type)
+{
+    switch(type)
+    {
+        case Var::INT:
+            return LOADI;
+	        
+	    case Var::FLOAT:
+	        return LOADF;
+	       
+	    case Var::DOUBLE:
+	        return LOADD;
+	}
+}
+
+Opcode getStoreOpcode(Var::Type type)
+{
+    switch(type)
+    {
+        case Var::INT:
+            return STOREI;
+	        
+	    case Var::FLOAT:
+	        return STOREF;
+	       
+	    case Var::DOUBLE:
+	        return STORED;
+	}
+}
+
 struct StackFrame {
-	std::map<std::string, BindingData> bindings;
+    typedef map<string, BindingData> Bindings;
+	Bindings bindings;
+	int bytesUsed;
 	
-	StackFrame(std::vector<Var> vars)
+	StackFrame(vector<Var> vars): bytesUsed(0)
 	{
-		int spOffset = 0;
-		
 		for(Var const& var : vars)
 		{
-			
+		    bytesUsed += var.size();
+			bindings.insert(pair<string, BindingData>(var.name, BindingData(var.type, -bytesUsed)));
 		}
 	}
-};*/
+	
+	void writeStackAlloc(Program& prog)
+	{
+	    prog.write(PUSHB_CONST, bytesUsed);
+	}
+	
+	void writeStackFree(Program& prog)
+	{
+	    prog.write(POPB_CONST, bytesUsed);
+	}
+	
+	BindingData getBindingData(string name)
+	{
+	    auto iter = bindings.find(name);
+	    
+	    if(iter == bindings.end())
+	        error("Undefined variable " + name);
+	        
+	    return iter->second;
+	}
+	
+	void writeLoad(Program& prog, string name)
+	{
+	    BindingData bd = getBindingData(name);
+	    prog.write(LOADSP_CONST, bd.spOffset);
+	    prog.write(getLoadOpcode(bd.varType));
+	}
+	
+	void writeStore(Program& prog, string name)
+	{
+	    BindingData bd = getBindingData(name);
+	    prog.write(LOADSP_CONST, bd.spOffset);
+	    prog.write(getStoreOpcode(bd.varType));
+	}
+};
 
-int main()
-{	
-	int res;
+void sumTest()
+{
+    int res;
 
 	Program prog;
 
@@ -673,6 +760,39 @@ int main()
 	vm.run();
 	
 	printf("RESULT = %d\n", res);
+}
+
+int main()
+{	
+	Program prog;
 	
+	StackFrame frame({
+	    Var(Var::INT, "a"),
+	    Var(Var::INT, "b"),
+	});
+	
+	frame.writeStackAlloc(prog);
+	prog.write(LOADV_CONST, 2);
+	frame.writeStore(prog, "a");
+	
+	prog.write(LOADV_CONST, 3);
+	frame.writeStore(prog, "b");
+	
+	frame.writeLoad(prog, "a");
+	frame.writeLoad(prog, "b");
+	prog.write(ADD);
+	
+	/*
+	AsmParser asmParser(prog, {
+	    HALT,
+	});*/
+	
+    VM vm(prog.data);
+	vm.run();
+	vm.printOpStack();
+
+
+    //printf("RESULT = %f (%d)\n", vm.opStack[0], (int)vm.opStack.size());
+    
 	return 0;
 }
