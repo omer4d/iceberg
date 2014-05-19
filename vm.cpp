@@ -78,7 +78,15 @@ Opcode getStoreOpcode(Var::Type type)
 
 Value getVar(uint8_t* buff, Var::Type type, int offs=0)
 {
-    
+    switch(type)
+    {
+        case Var::INT:
+            return *(int*)(buff + offs);
+        case Var::FLOAT:
+            return *(float*)(buff + offs);
+        case Var::DOUBLE:
+            return *(double*)(buff + offs);
+    }
 }
 
 struct StackFrame {
@@ -229,6 +237,7 @@ int main()
 	vm.run();
 	vm.printOpStack();
 
+    printf("%f\n", getVar(vm.sp, Var::INT, frame.getBindingData("c").spOffset));
 
     //printf("RESULT = %f (%d)\n", vm.opStack[0], (int)vm.opStack.size());
     
