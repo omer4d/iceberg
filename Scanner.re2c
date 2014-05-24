@@ -1,0 +1,28 @@
+#include "Scanner.hpp"
+#include "Token.hpp"
+
+Token Scanner::next()
+{
+    char const* tokStart;
+
+start:   
+    tokStart = cursor;
+
+    /*!re2c
+            re2c:define:YYCTYPE  = "char";
+            re2c:define:YYCURSOR = cursor;
+            re2c:yyfill:enable   = 0;
+        
+            WS =            [ \r\n\t\f];
+            NAME_CH =       [a-zA-Z!$%&*+-./:<=>?@^_~];
+            DIGIT =         [0-9];
+            
+            "("                             { return Token(Token::OBR, tokStart, cursor); }
+            ")"                             { return Token(Token::CBR, tokStart, cursor); }
+            NAME_CH (NAME_CH | DIGIT)*      { return Token(Token::NAME, tokStart, cursor); }
+            DIGIT+                          { return Token(Token::INT_LITERAL, tokStart, cursor); }
+            WS                              { goto start; }
+            [\000]                          { return Token(Token::END_OF_INPUT); }
+            [^]                             { return Token(Token::INVALID, tokStart, cursor); }
+    */
+}

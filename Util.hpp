@@ -2,8 +2,9 @@
 #define _UTIL_HPP_
 
 #include <cstdio>
+#include <string>
 
-void error(std::string const& msg)
+inline void error(std::string const& msg)
 {
     printf("%s", msg.c_str());
     char* ptr = nullptr;
