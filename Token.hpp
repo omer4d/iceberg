@@ -15,6 +15,30 @@ struct Token {
         NAME, INT_LITERAL, OBR, CBR, END_OF_INPUT, INVALID
     };
     
+    static char const* typeNameCstr(Type type)
+    {
+        switch(type)
+        {
+            case NAME:
+                return "name";
+            case OBR:
+                return "(";
+            case CBR:
+                return ")";
+            case END_OF_INPUT:
+                return "end of input";
+            case INVALID:
+                return "invalid token";
+            default:
+                return "literal";
+        }
+    }
+    
+    static std::string typeName(Type type)
+    {
+        return typeNameCstr(type);
+    }
+    
     Type type;
     std::string text;
     

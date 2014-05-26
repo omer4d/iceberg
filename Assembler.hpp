@@ -65,6 +65,11 @@ struct Assembler {
 		}
 	}
 	
+        static void error(std::string const& msg)
+        {
+            die(msg);
+        }
+        
 	bool reachedEnd()
 	{
 		return tokIndex >= (int)tokens.size();

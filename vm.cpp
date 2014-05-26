@@ -122,7 +122,7 @@ struct StackFrame {
         auto iter = bindings.find(name);
 
         if (iter == bindings.end())
-            error("Undefined variable " + name);
+            die("Undefined variable " + name);
 
         return iter->second;
     }
@@ -324,20 +324,19 @@ struct Atom: public ASTNode {
     }
 };
 
-//struct ParserError: public std::exception {
-//    char text[512];
-//    Token::Type expectedType, gottenType;
-//    
-//    ParserError(Token::Type expectedType_, Token const& got): expectedType(expectedType_), gotType(got.type)
-//    {
-//        strncpy(text, got.text.c_str(), 512);
-//    }
-//    
-//    const char* what() const noexcept
-//    {
-//        return "Parser error";
-//    }
-//};
+struct CompilationError: public std::exception {
+    char msgBuff[512];
+    
+    CompilationError(std::string const& msg)
+    {
+        copyToBuff<512>(msgBuff, msg);
+    }
+    
+    const char* what() const noexcept
+    {
+        return msgBuff;
+    }
+};
 
 struct Parser {
     typedef std::list<Token>::const_iterator TokenIter;
@@ -347,6 +346,27 @@ struct Parser {
     Parser(TokenIter start): cursor(start)
     {
     }
+    
+    // **********
+    // * Errors *
+    // **********
+    
+    void expectedTokenError(Token::Type tok)
+    {
+        throw CompilationError("Expected '" + Token::typeName(tok) + "'");
+    }
+    
+    void unexpectedTokenError(Token const& tok)
+    {
+        if(tok.type == Token::INVALID)
+            throw CompilationError("Unexpected '" + tok.text + "'");
+        else
+            throw CompilationError("Unexpected '" + Token::typeName(tok.type) + "'");
+    }
+    
+    // ********
+    // * Util *
+    // ********
     
     bool end()
     {
@@ -361,7 +381,7 @@ struct Parser {
     void readToken(Token::Type tok)
     {
         if(peek() != tok)
-            error("Expected token " + tok);
+            expectedTokenError(tok);
         ++cursor;
     }
     
@@ -369,6 +389,10 @@ struct Parser {
     {
         return (cursor++)->type;
     }
+    
+    // *********
+    // * Rules *
+    // *********
     
     ASTNode* readList()
     {
@@ -401,7 +425,7 @@ struct Parser {
         if(isAtom(tokType))
             return new Atom(*(cursor++));
         else
-            error("Unexpected token " + tokType);
+            unexpectedTokenError(*cursor);
     }
     
     ASTNode* readExpr()
@@ -421,10 +445,18 @@ int main()
     Scanner scanner("(tata)");
     auto toks = scanner.scan();
     Parser parser(toks.begin());
+
+    try
+    {
+        ASTNode* root = parser.readExpr();
+        root->print();
+        delete root;
+    }
     
-    ASTNode* root = parser.readExpr();
-    root->print();
-    delete root;
+    catch(CompilationError const& e)
+    {
+        printf("%s\n", e.what());
+    }
     
     printf("\n");
     

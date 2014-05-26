@@ -28,9 +28,9 @@ struct Scanner {
         
         for(Token tok = next(); tok.type != Token::END_OF_INPUT; tok = next())
         {
-            if(tok.type == Token::INVALID)
-                error("Unexpected token " + tok.text);
-            else
+            //if(tok.type == Token::INVALID)
+                //die("Unexpected token " + tok.text);
+            //else
                 tokens.push_back(tok);
         }
         
