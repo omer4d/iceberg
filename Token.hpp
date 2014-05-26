@@ -16,21 +16,15 @@ struct Token {
     };
     
     Type type;
-    char const* start;
-    char const* end;
+    std::string text;
     
-    Token(Type type_): type(type_), start(nullptr), end(nullptr)
+    Token(Type type_): type(type_)
     {
         
     }
     
-    Token(Type type_, char const* start_, char const* end_): type(type_), start(start_), end(end_)
+    Token(Type type_, char const* start, char const* end): type(type_), text(start, end)
     {
-    }
-    
-    std::string text()
-    {
-        return std::string(start, end);
     }
 };
 

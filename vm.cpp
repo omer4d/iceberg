@@ -3,6 +3,8 @@
 
 #include <map>
 #include <string>
+#include <stdexcept>
+#include <cstring>
 
 using namespace std;
 
@@ -145,59 +147,60 @@ void sumTest()
     int res;
 
     Program prog;
+    vector<AsmToken> toks = {
+        PUSHB_CONST, sizeof (int[4]) + sizeof (int),
 
-    Assembler assembler(prog,{
-                        PUSHB_CONST, sizeof (int[4]) + sizeof (int),
+        LOADV_CONST, 2,
+        LOADSP_CONST, -20,
+        STOREI,
 
-                        LOADV_CONST, 2,
-                        LOADSP_CONST, -20,
-                        STOREI,
+        LOADV_CONST, 3,
+        LOADSP_CONST, -16,
+        STOREI,
 
-                        LOADV_CONST, 3,
-                        LOADSP_CONST, -16,
-                        STOREI,
+        LOADV_CONST, 4,
+        LOADSP_CONST, -12,
+        STOREI,
 
-                        LOADV_CONST, 4,
-                        LOADSP_CONST, -12,
-                        STOREI,
+        LOADV_CONST, 5,
+        LOADSP_CONST, -8,
+        STOREI,
 
-                        LOADV_CONST, 5,
-                        LOADSP_CONST, -8,
-                        STOREI,
+        LOADSP_CONST, -20,
+        LOADSP_CONST, -4,
+        STOREA,
 
-                        LOADSP_CONST, -20,
-                        LOADSP_CONST, -4,
-                        STOREA,
+        LOADV_CONST, 0.0,
 
-                        LOADV_CONST, 0.0,
+        "loop1",
+        LOADSP_CONST, -4,
+        LOADA,
 
-                        "loop1",
-                        LOADSP_CONST, -4,
-                        LOADA,
+        LOADI,
+        ADD,
 
-                        LOADI,
-                        ADD,
+        LOADSP_CONST, -4,
+        LOADA,
+        LOADV_CONST, 4,
 
-                        LOADSP_CONST, -4,
-                        LOADA,
-                        LOADV_CONST, 4,
+        ADD,
+        LOADSP_CONST, -4,
+        STOREA,
+        LOADA_CONST, "loop1",
 
-                        ADD,
-                        LOADSP_CONST, -4,
-                        STOREA,
-                        LOADA_CONST, "loop1",
+        LOADSP_CONST, -4,
+        LOADA,
+        LOADSP_CONST, -4,
+        SUB,
 
-                        LOADSP_CONST, -4,
-                        LOADA,
-                        LOADSP_CONST, -4,
-                        SUB,
+        JLT,
 
-                        JLT,
-
-                        LOADA_CONST, &res,
-                        STOREI,
-                        HALT,
-    });
+        LOADA_CONST, &res,
+        STOREI,
+        HALT,
+    };
+    
+    Assembler assembler(prog, toks);
 
     VM vm(prog.data);
     vm.run();
@@ -205,32 +208,14 @@ void sumTest()
     printf("RESULT = %d\n", res);
 }
 
-void testScanner()
-{
-    Scanner scanner("123 (0456.@$@%789)))");
-
-    auto tokens = scanner.scan();
-
-    for (Token tok : tokens)
-    {
-        if (tok.type == Token::INVALID)
-        {
-            printf("Unexpected token (%s)\n", tok.text().c_str());
-            break;
-        }
-        else
-            printf("%s\n", tok.text().c_str());
-    }
-}
-
-int main()
+void testFrame()
 {
     Program prog;
 
     StackFrame frame({
-                     Var(Var::INT, "a"),
-                     Var(Var::DOUBLE, "b"),
-                     Var(Var::INT, "c"),
+        Var(Var::INT, "a"),
+        Var(Var::DOUBLE, "b"),
+        Var(Var::INT, "c"),
     });
 
     frame.writeStackAlloc(prog);
@@ -258,10 +243,190 @@ int main()
     vm.printOpStack();
 
     printf("%f\n", getVar(vm.sp, Var::INT, frame.getBindingData("c").spOffset));
+}
 
-    testScanner();
+void testScanner()
+{
+    Scanner scanner("123 (0456.@$@%789)))");
 
-    //printf("RESULT = %f (%d)\n", vm.opStack[0], (int)vm.opStack.size());
+    auto tokens = scanner.scan();
 
+    for (Token tok : tokens)
+    {
+        if (tok.type == Token::INVALID)
+        {
+            printf("Unexpected token (%s)\n", tok.text.c_str());
+            break;
+        }
+        else
+            printf("%s\n", tok.text.c_str());
+    }
+}
+
+/*
+ * expr = (list | atom)
+ * list = '(' expr* ')'
+ * atom = name | literal
+*/
+
+struct ASTNode {
+    enum Type {
+        LIST, ATOM,
+    };
+    
+    Type type;
+    
+    ASTNode(Type type_): type(type_)
+    {
+    }
+    
+    virtual void print() = 0;
+    virtual ~ASTNode() = default;
+};
+
+struct List: public ASTNode {
+    list<ASTNode*> nodes;
+    
+    List(): ASTNode(ASTNode::LIST)
+    {
+    }
+    
+    ~List()
+    {
+        for(auto node : nodes)
+            delete node;
+    }
+    
+    void print()
+    {
+        printf("(");
+        
+        for(auto node : nodes)
+        {
+            node->print();
+            printf(" ");
+        }
+        
+        printf(")");
+    }
+};
+
+struct Atom: public ASTNode {
+    Token token;
+    
+    Atom(Token token_): ASTNode(ASTNode::ATOM), token(token_)
+    {
+    }
+    
+    void print()
+    {
+        printf("%s", token.text.c_str());
+    }
+};
+
+//struct ParserError: public std::exception {
+//    char text[512];
+//    Token::Type expectedType, gottenType;
+//    
+//    ParserError(Token::Type expectedType_, Token const& got): expectedType(expectedType_), gotType(got.type)
+//    {
+//        strncpy(text, got.text.c_str(), 512);
+//    }
+//    
+//    const char* what() const noexcept
+//    {
+//        return "Parser error";
+//    }
+//};
+
+struct Parser {
+    typedef std::list<Token>::const_iterator TokenIter;
+    
+    TokenIter cursor;
+    
+    Parser(TokenIter start): cursor(start)
+    {
+    }
+    
+    bool end()
+    {
+        return cursor->type == Token::END_OF_INPUT;
+    }
+    
+    Token::Type peek()
+    {
+        return cursor->type;
+    }
+    
+    void readToken(Token::Type tok)
+    {
+        if(peek() != tok)
+            error("Expected token " + tok);
+        ++cursor;
+    }
+    
+    Token::Type readToken()
+    {
+        return (cursor++)->type;
+    }
+    
+    ASTNode* readList()
+    {
+        List lst;
+        
+        readToken(Token::OBR);
+        
+        while(peek() != Token::CBR)
+        {
+            lst.nodes.push_back(readExpr());
+        }
+        
+        readToken(Token::CBR);
+        
+        return new List(lst);
+    }
+    
+    static bool isAtom(Token::Type tokType)
+    {
+        return tokType != Token::CBR &&
+                tokType != Token::OBR &&
+                tokType != Token::END_OF_INPUT &&
+                tokType != Token::INVALID;
+    }
+    
+    ASTNode* readAtom()
+    {
+        Token::Type tokType = peek();
+        
+        if(isAtom(tokType))
+            return new Atom(*(cursor++));
+        else
+            error("Unexpected token " + tokType);
+    }
+    
+    ASTNode* readExpr()
+    {
+        switch(peek())
+        {
+            case Token::OBR:
+                return readList();
+            default:
+                return readAtom();
+        }
+    }
+};
+
+int main()
+{
+    Scanner scanner("(tata)");
+    auto toks = scanner.scan();
+    Parser parser(toks.begin());
+    
+    ASTNode* root = parser.readExpr();
+    root->print();
+    delete root;
+    
+    printf("\n");
+    
     return 0;
 }
