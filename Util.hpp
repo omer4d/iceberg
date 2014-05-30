@@ -24,4 +24,18 @@ void copyToBuff(char buff[N], std::string const& str)
     strncpy(buff, str.c_str(), std::min(N, (int)str.length() + 1));
 }
 
+struct CompilationError: public std::exception {
+    char msgBuff[512];
+    
+    CompilationError(std::string const& msg)
+    {
+        copyToBuff<512>(msgBuff, msg);
+    }
+    
+    const char* what() const noexcept
+    {
+        return msgBuff;
+    }
+};
+
 #endif

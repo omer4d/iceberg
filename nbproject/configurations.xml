@@ -12,8 +12,10 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
+      <itemPath>AST.hpp</itemPath>
       <itemPath>Assembler.hpp</itemPath>
       <itemPath>Opcode.hpp</itemPath>
+      <itemPath>Parser.hpp</itemPath>
       <itemPath>Program.hpp</itemPath>
       <itemPath>Scanner.cpp</itemPath>
       <itemPath>Scanner.hpp</itemPath>
@@ -48,9 +50,13 @@
           <standard>8</standard>
         </ccTool>
       </compileType>
+      <item path="AST.hpp" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="Assembler.hpp" ex="false" tool="3" flavor2="0">
       </item>
       <item path="Opcode.hpp" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Parser.hpp" ex="false" tool="3" flavor2="0">
       </item>
       <item path="Program.hpp" ex="false" tool="3" flavor2="0">
       </item>
@@ -90,9 +96,13 @@
           <developmentMode>5</developmentMode>
         </asmTool>
       </compileType>
+      <item path="AST.hpp" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="Assembler.hpp" ex="false" tool="3" flavor2="0">
       </item>
       <item path="Opcode.hpp" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="Parser.hpp" ex="false" tool="3" flavor2="0">
       </item>
       <item path="Program.hpp" ex="false" tool="3" flavor2="0">
       </item>

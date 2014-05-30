@@ -14,6 +14,8 @@ using namespace std;
 #include "Program.hpp"
 #include "Assembler.hpp"
 #include "Scanner.hpp"
+#include "AST.hpp"
+#include "Parser.hpp"
 
 struct Var {
 
@@ -270,172 +272,11 @@ void testScanner()
  * atom = name | literal
 */
 
-struct ASTNode {
-    enum Type {
-        LIST, ATOM,
-    };
-    
-    typedef std::shared_ptr<ASTNode> Sptr;
-    
-    Type type;
-    
-    ASTNode(Type type_): type(type_)
-    {
-    }
-    
-    virtual void print() = 0;
-    virtual ~ASTNode() = default;
-};
 
-struct List: public ASTNode {
-    list<ASTNode::Sptr> nodes;
-    
-    List(): ASTNode(ASTNode::LIST)
-    {
-    }
-    
-    void print()
-    {
-        printf("(");
-        
-        for(auto node : nodes)
-        {
-            node->print();
-            printf(" ");
-        }
-        
-        printf(")");
-    }
-};
 
-struct Atom: public ASTNode {
-    Token token;
-    
-    Atom(Token token_): ASTNode(ASTNode::ATOM), token(token_)
-    {
-    }
-    
-    void print()
-    {
-        printf("%s", token.text.c_str());
-    }
-};
 
-struct CompilationError: public std::exception {
-    char msgBuff[512];
-    
-    CompilationError(std::string const& msg)
-    {
-        copyToBuff<512>(msgBuff, msg);
-    }
-    
-    const char* what() const noexcept
-    {
-        return msgBuff;
-    }
-};
 
-struct Parser {
-    typedef std::list<Token>::const_iterator TokenIter;
-    
-    TokenIter cursor;
-    
-    Parser(TokenIter start): cursor(start)
-    {
-    }
-    
-    // **********
-    // * Errors *
-    // **********
-    
-    void expectedTokenError(Token::Type tok)
-    {
-        throw CompilationError("Expected '" + Token::typeName(tok) + "'");
-    }
-    
-    void unexpectedTokenError(Token const& tok)
-    {
-        if(tok.type == Token::INVALID)
-            throw CompilationError("Unexpected '" + tok.text + "'");
-        else
-            throw CompilationError("Unexpected '" + Token::typeName(tok.type) + "'");
-    }
-    
-    // ********
-    // * Util *
-    // ********
-    
-    bool end()
-    {
-        return cursor->type == Token::END_OF_INPUT;
-    }
-    
-    Token::Type peek()
-    {
-        return cursor->type;
-    }
-    
-    void readToken(Token::Type tok)
-    {
-        if(peek() != tok)
-            expectedTokenError(tok);
-        ++cursor;
-    }
-    
-    Token::Type readToken()
-    {
-        return (cursor++)->type;
-    }
-    
-    // *********
-    // * Rules *
-    // *********
-    
-    ASTNode::Sptr readList()
-    {
-        std::shared_ptr<List> lst(new List());
-        
-        readToken(Token::OBR);
-        
-        while(peek() != Token::CBR)
-        {
-            lst->nodes.push_back(readExpr());
-        }
-        
-        readToken(Token::CBR);
-        
-        return lst;
-    }
-    
-    static bool isAtom(Token::Type tokType)
-    {
-        return tokType != Token::CBR &&
-                tokType != Token::OBR &&
-                tokType != Token::END_OF_INPUT &&
-                tokType != Token::INVALID;
-    }
-    
-    ASTNode::Sptr readAtom()
-    {
-        Token::Type tokType = peek();
-        
-        if(isAtom(tokType))
-            return ASTNode::Sptr(new Atom(*(cursor++)));
-        else
-            unexpectedTokenError(*cursor);
-    }
-    
-    ASTNode::Sptr readExpr()
-    {
-        switch(peek())
-        {
-            case Token::OBR:
-                return readList();
-            default:
-                return readAtom();
-        }
-    }
-};
+
 
 /*
 (declfun zaza (int int (char *)) (int))
@@ -463,7 +304,7 @@ int main()
     
     printf("\n");
     
-    sumTest();
+    //sumTest();
     //testFrame();
     
     return 0;
