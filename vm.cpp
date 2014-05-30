@@ -56,13 +56,13 @@ Opcode getLoadOpcode(Var::Type type)
     switch (type)
     {
         case Var::INT:
-            return LOADI;
+            return LOAD_INT;
 
         case Var::FLOAT:
-            return LOADF;
+            return LOAD_FLOAT;
 
         case Var::DOUBLE:
-            return LOADD;
+            return LOAD_DOUBLE;
     }
 }
 
@@ -71,13 +71,13 @@ Opcode getStoreOpcode(Var::Type type)
     switch (type)
     {
         case Var::INT:
-            return STOREI;
+            return STORE_INT;
 
         case Var::FLOAT:
-            return STOREF;
+            return STORE_FLOAT;
 
         case Var::DOUBLE:
-            return STORED;
+            return STORE_DOUBLE;
     }
 }
 
@@ -131,14 +131,14 @@ struct StackFrame {
     void writeLoad(Program& prog, string name)
     {
         BindingData bd = getBindingData(name);
-        prog.write(LOADSP_CONST, bd.spOffset);
+        prog.write(LOAD_STACK_OFFS_CONST, bd.spOffset);
         prog.write(getLoadOpcode(bd.varType));
     }
 
     void writeStore(Program& prog, string name)
     {
         BindingData bd = getBindingData(name);
-        prog.write(LOADSP_CONST, bd.spOffset);
+        prog.write(LOAD_STACK_OFFS_CONST, bd.spOffset);
         prog.write(getStoreOpcode(bd.varType));
     }
 };
@@ -151,53 +151,53 @@ void sumTest()
     vector<AsmToken> toks = {
         PUSHB_CONST, sizeof (int[4]) + sizeof (int),
 
-        LOADV_CONST, 2,
-        LOADSP_CONST, -20,
-        STOREI,
+        LOAD_VAL_CONST, 2,
+        LOAD_STACK_OFFS_CONST, -20,
+        STORE_INT,
 
-        LOADV_CONST, 3,
-        LOADSP_CONST, -16,
-        STOREI,
+        LOAD_VAL_CONST, 3,
+        LOAD_STACK_OFFS_CONST, -16,
+        STORE_INT,
 
-        LOADV_CONST, 4,
-        LOADSP_CONST, -12,
-        STOREI,
+        LOAD_VAL_CONST, 4,
+        LOAD_STACK_OFFS_CONST, -12,
+        STORE_INT,
 
-        LOADV_CONST, 5,
-        LOADSP_CONST, -8,
-        STOREI,
+        LOAD_VAL_CONST, 5,
+        LOAD_STACK_OFFS_CONST, -8,
+        STORE_INT,
 
-        LOADSP_CONST, -20,
-        LOADSP_CONST, -4,
-        STOREA,
+        LOAD_STACK_OFFS_CONST, -20,
+        LOAD_STACK_OFFS_CONST, -4,
+        STORE_ADDR,
 
-        LOADV_CONST, 0.0,
+        LOAD_VAL_CONST, 0.0,
 
         "loop1",
-        LOADSP_CONST, -4,
-        LOADA,
+        LOAD_STACK_OFFS_CONST, -4,
+        LOAD_ADDR,
 
-        LOADI,
+        LOAD_INT,
         ADD,
 
-        LOADSP_CONST, -4,
-        LOADA,
-        LOADV_CONST, 4,
+        LOAD_STACK_OFFS_CONST, -4,
+        LOAD_ADDR,
+        LOAD_VAL_CONST, 4,
 
         ADD,
-        LOADSP_CONST, -4,
-        STOREA,
-        LOADA_CONST, "loop1",
+        LOAD_STACK_OFFS_CONST, -4,
+        STORE_ADDR,
+        LOAD_ADDR_CONST, "loop1",
 
-        LOADSP_CONST, -4,
-        LOADA,
-        LOADSP_CONST, -4,
+        LOAD_STACK_OFFS_CONST, -4,
+        LOAD_ADDR,
+        LOAD_STACK_OFFS_CONST, -4,
         SUB,
 
         JLT,
 
-        LOADA_CONST, &res,
-        STOREI,
+        LOAD_ADDR_CONST, &res,
+        STORE_INT,
         HALT,
     };
     
@@ -221,10 +221,10 @@ void testFrame()
 
     frame.writeStackAlloc(prog);
 
-    prog.write(LOADV_CONST, 2);
+    prog.write(LOAD_VAL_CONST, 2);
     frame.writeStore(prog, "a");
 
-    prog.write(LOADV_CONST, 3);
+    prog.write(LOAD_VAL_CONST, 3);
     frame.writeStore(prog, "b");
 
     frame.writeLoad(prog, "a");
@@ -462,6 +462,9 @@ int main()
     }
     
     printf("\n");
+    
+    sumTest();
+    //testFrame();
     
     return 0;
 }

@@ -125,11 +125,11 @@ struct Assembler {
 	
 		switch(opcode)
 		{
-			case LOADA_CONST:
+			case LOAD_ADDR_CONST:
 				prog.write(opcode, parseAddrOrLabel());
 				break;
 		
-			case LOADV_CONST: case LOADSP_CONST: case PUSHB_CONST: case POPB_CONST:
+			case LOAD_VAL_CONST: case LOAD_STACK_OFFS_CONST: case PUSHB_CONST: case POPB_CONST:
 				prog.write(opcode, parseValue());
 				break;
 				
