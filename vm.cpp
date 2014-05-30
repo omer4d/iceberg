@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <memory>
 #include <map>
 #include <string>
 #include <stdexcept>
@@ -274,6 +275,8 @@ struct ASTNode {
         LIST, ATOM,
     };
     
+    typedef std::shared_ptr<ASTNode> Sptr;
+    
     Type type;
     
     ASTNode(Type type_): type(type_)
@@ -285,16 +288,10 @@ struct ASTNode {
 };
 
 struct List: public ASTNode {
-    list<ASTNode*> nodes;
+    list<ASTNode::Sptr> nodes;
     
     List(): ASTNode(ASTNode::LIST)
     {
-    }
-    
-    ~List()
-    {
-        for(auto node : nodes)
-            delete node;
     }
     
     void print()
@@ -394,20 +391,20 @@ struct Parser {
     // * Rules *
     // *********
     
-    ASTNode* readList()
+    ASTNode::Sptr readList()
     {
-        List lst;
+        std::shared_ptr<List> lst(new List());
         
         readToken(Token::OBR);
         
         while(peek() != Token::CBR)
         {
-            lst.nodes.push_back(readExpr());
+            lst->nodes.push_back(readExpr());
         }
         
         readToken(Token::CBR);
         
-        return new List(lst);
+        return lst;
     }
     
     static bool isAtom(Token::Type tokType)
@@ -418,17 +415,17 @@ struct Parser {
                 tokType != Token::INVALID;
     }
     
-    ASTNode* readAtom()
+    ASTNode::Sptr readAtom()
     {
         Token::Type tokType = peek();
         
         if(isAtom(tokType))
-            return new Atom(*(cursor++));
+            return ASTNode::Sptr(new Atom(*(cursor++)));
         else
             unexpectedTokenError(*cursor);
     }
     
-    ASTNode* readExpr()
+    ASTNode::Sptr readExpr()
     {
         switch(peek())
         {
@@ -440,17 +437,23 @@ struct Parser {
     }
 };
 
+/*
+(declfun zaza (int int (char *)) (int))
+(defun zaza (x y z))
+//(let ((int *) x 1)
+ 
+ */
+
 int main()
 {
-    Scanner scanner("(tata)");
+    Scanner scanner("(tata () zaza (baz (kaka ())))");
     auto toks = scanner.scan();
     Parser parser(toks.begin());
 
     try
     {
-        ASTNode* root = parser.readExpr();
+        ASTNode::Sptr root = parser.readExpr();
         root->print();
-        delete root;
     }
     
     catch(CompilationError const& e)
