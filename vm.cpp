@@ -96,12 +96,12 @@ Value getVar(uint8_t* buff, Var::Type type, int offs = 0)
     }
 }
 
-struct StackFrame {
-    typedef map<string, BindingData> Bindings;
+struct LocalContext {
+    typedef std::map<string, BindingData> Bindings;
     Bindings bindings;
     int bytesUsed;
 
-    StackFrame(vector<Var> vars) : bytesUsed(0)
+    LocalContext(std::vector<Var> vars) : bytesUsed(0)
     {
         for (Var const& var : vars)
         {
@@ -215,7 +215,7 @@ void testFrame()
 {
     Program prog;
 
-    StackFrame frame({
+    LocalContext frame({
         Var(Var::INT, "a"),
         Var(Var::DOUBLE, "b"),
         Var(Var::INT, "c"),
@@ -284,6 +284,71 @@ void testScanner()
 //(let ((int *) x 1)
  
  */
+
+/*
+ (let ((x 3 int) (y 4 float))
+ * (f1 x)
+ * (f2 y))
+ */
+
+//StackFrame compileLetForm(Program& prog, List const& lst)
+//{
+    //StackFrame frame;
+//}
+
+
+
+
+void compileBuiltinAdd(Program& prog)
+{
+    LocalContext ctx({
+        Var(Var::INT, "retval"),
+        Var(Var::INT, "a"),
+        Var(Var::INT, "b"),
+    });
+    
+    //prog.write();
+    ctx.writeLoad(prog, "a");
+    ctx.writeLoad(prog, "b");
+    prog.write(ADD);
+    ctx.writeStore(prog, "retval");
+    
+    ctx.writeStackFree(prog);
+    
+//    Program prog;
+//
+//    StackFrame frame({
+//        Var(Var::INT, "a"),
+//        Var(Var::DOUBLE, "b"),
+//        Var(Var::INT, "c"),
+//    });
+//
+//    frame.writeStackAlloc(prog);
+//
+//    prog.write(LOAD_VAL_CONST, 2);
+//    frame.writeStore(prog, "a");
+//
+//    prog.write(LOAD_VAL_CONST, 3);
+//    frame.writeStore(prog, "b");
+//
+//    frame.writeLoad(prog, "a");
+//    frame.writeLoad(prog, "b");
+//
+//    prog.write(ADD);
+//
+//    frame.writeStore(prog, "c");
+//
+//    /*
+//    AsmParser asmParser(prog, {
+//        HALT,
+//    });*/
+//
+//    VM vm(prog.data);
+//    vm.run();
+//    vm.printOpStack();
+//
+//    printf("%f\n", getVar(vm.sp, Var::INT, frame.getBindingData("c").spOffset));
+}
 
 int main()
 {
